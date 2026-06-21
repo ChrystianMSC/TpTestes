@@ -67,3 +67,16 @@ def test_draw_card_returns_false_when_deck_is_empty():
 
     assert success is False
     assert len(player.hand) == 3  # Mantém apenas as iniciais
+
+
+def test_draw_mana_consecutive_turns_recharges_fully():
+    """Garante que no turno seguinte a mana pool recarrega baseado no novo máximo."""
+    player = Player("Chrystian")
+    player.draw_mana()  # mana_max = 1, mana_pool = 1
+    player.mana_pool = 0  # Simula que o jogador gastou sua mana no turno passado
+
+    player.draw_mana()  # Nova compra de mana no turno seguinte
+
+    assert player.mana_max == 2
+    assert player.mana_pool == 2  # Deve recarregar totalmente para o novo máximo
+    assert player.mana_deck == 8
