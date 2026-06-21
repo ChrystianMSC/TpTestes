@@ -35,3 +35,11 @@ def test_player_initialization_hand_and_deck():
     player = Player("Chrystian")
     assert len(player.hand) == 3
     assert len(player.deck) == 17
+
+def test_set_turn_modifies_state():
+    """Garante que a mudança de turno altera corretamente a propriedade is_my_turn."""
+    player = Player("Chrystian")
+    player.set_turn(True)
+    assert player.is_my_turn is True
+    player.set_turn(False)
+    assert player.is_my_turn is False
