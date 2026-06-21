@@ -56,15 +56,12 @@ class GameController(NetworkObserver):
 
         while self._is_game_running:
             if self._local_player.is_my_turn:
-                # Compra carta obrigatória do turno
                 self._local_player.draw_card()
 
-                # Regra de Balanceamento de Mana para o Turno 1 do Jogador 2 (Guest)
                 if not self._local_player.is_first_turn:
                     self._local_player.draw_mana()
                 else:
                     self._local_player.draw_mana()
-                    # Se não for o Host (ou seja, se for o Guest) e for o primeiro turno dele, ganha +1 cristal
                     if self._opp_mana != "0/0":
                         self._local_player.draw_mana()
                     self._local_player.is_first_turn = False
@@ -72,7 +69,6 @@ class GameController(NetworkObserver):
                 self._sync_state()
                 self._turn_loop()
             else:
-                # Modo de Espera Ativa Atualizado Dinamicamente pelas mensagens de Rede
                 TerminalView.display_board(self._local_player, self._opp_hp, self._opp_mana, self._opp_hand_count,
                                            self._opp_defense)
                 print("Aguardando o turno do oponente...")

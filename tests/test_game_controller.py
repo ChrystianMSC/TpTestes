@@ -66,3 +66,18 @@ def test_on_message_received_end_turn(game_controller):
     game_controller.on_message_received({"action": "END_TURN"})
 
     assert game_controller._local_player.is_my_turn is True
+
+
+def test_on_message_received_attack_resolved(game_controller):
+    """[Integração] Garante que a confirmação de ataque destrava o atacante e reduz a vida do alvo mockado."""
+    game_controller._opp_hp = 10
+    game_controller._is_waiting_defense = True
+
+    payload = {
+        "action": "ATTACK_RESOLVED",
+        "final_damage": 4
+    }
+    game_controller.on_message_received(payload)
+
+    assert game_controller._opp_hp == 6
+    assert game_controller._is_waiting_defense is False

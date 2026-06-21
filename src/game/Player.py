@@ -14,7 +14,7 @@ class Player:
         self.mana_pool = 0
         self.mana_max = 0
         self.defense_active = 0
-        self.is_first_turn = True  # <--- NOVA FLAG PARA O BALANCEAMENTO
+        self.is_first_turn = True
 
         self._load_deck()
 
