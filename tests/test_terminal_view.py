@@ -24,3 +24,9 @@ def test_display_opponent_message_formats_correctly(capsys):
     TerminalView.display_opponent_message("Adversario", "Minha jogada")
     captured = capsys.readouterr()
     assert captured.out == "\n[Adversario]: Minha jogada\n"
+
+def test_prompt_input_returns_user_string():
+    """Garante que o prompt_input captura e retorna exatamente o que o usuário digitou."""
+    with patch("builtins.input", return_value="pass"):
+        result = TerminalView.prompt_input("Digite algo: ")
+        assert result == "pass"
