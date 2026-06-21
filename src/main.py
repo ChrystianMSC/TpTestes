@@ -2,7 +2,6 @@ import sys
 from src.network.P2PNetworkManager import P2PNetworkManager
 from src.game.GameController import GameController
 from src.game.TerminalView import TerminalView
-from src.game.GuiView import GuiView  # Nova classe que você implementou
 
 def main():
     use_gui = "--gui" in sys.argv
