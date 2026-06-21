@@ -16,3 +16,13 @@ def game_controller(mock_network):
     with patch("time.sleep"):
         controller = GameController(mock_network, "Chrystian")
         return controller
+
+
+def test_setup_connection_as_host(game_controller, mock_network):
+    """Garante que o Host inicia o servidor de rede e começa com a prioridade do turno."""
+    with patch("src.game.TerminalView.display_message"):
+        game_controller.setup_connection("host", "127.0.0.1", 9999)
+
+        assert game_controller._local_player.is_my_turn is True
+        assert game_controller._is_game_running is True
+        mock_network.start_as_host.assert_called_once_with("127.0.0.1", 9999)
