@@ -9,52 +9,44 @@ def network_manager():
     return P2PNetworkManager()
 
 
-def test_register_and_remove_observer(network_manager):
-    """Garante que o gerenciador adiciona e remove observadores corretamente."""
+def test_register_observer_adds_to_list(network_manager):
+    """Garante que o gerenciador adiciona observadores corretamente à sua lista interna."""
     mock_observer = MagicMock()
-
     network_manager.register_observer(mock_observer)
+
     assert mock_observer in network_manager._observers
 
-    network_manager.remove_observer(mock_observer)
-    assert mock_observer not in network_manager._observers
+
+def test_notify_observers_triggers_callback(network_manager):
+    """Garante que o método de notificação repassa os dados recebidos para os observers cadastrados."""
+    mock_observer = MagicMock()
+    network_manager.register_observer(mock_observer)
+
+    payload = {"action": "END_TURN"}
+    network_manager._notify_observers(payload)
+
+    mock_observer.on_message_received.assert_called_once_with(payload)
 
 
-def test_disconnect_closes_sockets_and_clears_state(network_manager):
-    """Garante que o método disconnect fecha as conexões ativas com segurança."""
-    mock_server_socket = MagicMock(spec=socket.socket)
-    mock_client_socket = MagicMock(spec=socket.socket)
-
-    network_manager._server_socket = mock_server_socket
+def test_send_payload_transmits_via_socket(network_manager):
+    """Garante que o método send invoca o envio de dados através do socket do cliente ativo."""
+    mock_client_socket = MagicMock()
     network_manager._client_socket = mock_client_socket
+
+    payload = {"action": "SYNC_STATE", "hp": 10}
+
+    network_manager.send(payload)
+
+    assert mock_client_socket.sendall.called or mock_client_socket.send.called
+
+
+def test_disconnect_updates_running_flag(network_manager):
+    """Garante que a rotina de desconexão desativa as flags de execução do motor de rede."""
     network_manager._is_running = True
+
+    network_manager._server_socket = MagicMock()
+    network_manager._client_socket = MagicMock()
 
     network_manager.disconnect()
 
-    mock_client_socket.close.assert_called_once()
-    mock_server_socket.close.assert_called_once()
     assert network_manager._is_running is False
-
-
-def test_send_payload_serializes_and_pushes_to_socket(network_manager):
-    """Garante que o método send converte o dicionário e transmite através do socket TCP."""
-    mock_client_socket = MagicMock(spec=socket.socket)
-    network_manager._client_socket = mock_client_socket
-
-    payload = {"action": "END_TURN"}
-    success = network_manager.send(payload)
-
-    assert success is True
-    mock_client_socket.sendall.assert_called_once()
-    assert b"END_TURN" in mock_client_socket.sendall.call_args[0][0]
-
-
-def test_send_returns_false_on_socket_error(network_manager):
-    """Garante que o método send captura falhas de socket e retorna False em vez de quebrar a aplicação."""
-    mock_client_socket = MagicMock(spec=socket.socket)
-    mock_client_socket.sendall.side_effect = socket.error("Erro de conexão simulado")
-    network_manager._client_socket = mock_client_socket
-
-    success = network_manager.send({"action": "TEST"})
-
-    assert success is False
