@@ -32,14 +32,13 @@ def test_setup_connection_as_guest(game_controller, mock_network):
     """Garante que o Guest se conecta ao host e inicia aguardando o turno."""
     mock_network.connect_as_guest.return_value = True
 
-    with patch("src.game.GameController.TerminalView.display_message"), \
-            patch("src.game.GameController.TerminalView.display_board"):
+    with patch("src.game.TerminalView.TerminalView.display_message"), \
+            patch("src.game.TerminalView.TerminalView.display_board"):
         game_controller.setup_connection("guest", "127.0.0.1", 9999)
 
         assert game_controller._local_player.is_my_turn is False
         assert game_controller._is_connected is True
         mock_network.connect_as_guest.assert_called_once_with("127.0.0.1", 9999)
-
 
 def test_on_message_received_sync_state(game_controller):
     """[Integração] Garante que pacotes de SYNC_STATE atualizam as propriedades espelhadas do oponente."""
