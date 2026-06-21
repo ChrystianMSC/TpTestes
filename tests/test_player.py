@@ -43,3 +43,16 @@ def test_set_turn_modifies_state():
     assert player.is_my_turn is True
     player.set_turn(False)
     assert player.is_my_turn is False
+
+
+def test_draw_card_decrements_deck_and_increments_hand():
+    """Garante que comprar uma carta tira do deck e põe na mão."""
+    player = Player("Chrystian")
+    initial_hand_count = len(player.hand)
+    initial_deck_count = len(player.deck)
+
+    success = player.draw_card()
+
+    assert success is True
+    assert len(player.hand) == initial_hand_count + 1
+    assert len(player.deck) == initial_deck_count - 1
