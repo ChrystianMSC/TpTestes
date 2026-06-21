@@ -18,7 +18,7 @@ def main():
     IP = "127.0.0.1"
     PORT = 9999
 
-    view = GuiView() if use_gui else TerminalView()
+    view = TerminalView()
 
     network_manager = P2PNetworkManager()
     game_controller = GameController(network_manager, player_name, view)
