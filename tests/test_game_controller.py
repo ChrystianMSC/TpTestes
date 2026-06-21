@@ -11,12 +11,11 @@ def mock_network():
 
 @pytest.fixture
 def game_controller(mock_network):
-    """Instancia o GameController usando o mock de rede e um nome padrão."""
-    # Desativamos o time.sleep para os testes rodarem instantaneamente
+    """Instancia o GameController usando o mock de rede, uma view mocada e um nome padrão."""
+    mock_view = MagicMock()
     with patch("time.sleep"):
-        controller = GameController(mock_network, "Chrystian")
+        controller = GameController(mock_network, "Chrystian", mock_view)
         return controller
-
 
 def test_setup_connection_as_host(game_controller, mock_network):
     """Garante que o Host inicia o servidor de rede e começa com a prioridade do turno."""
