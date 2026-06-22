@@ -155,3 +155,127 @@ def test_turn_loop_card_penalty_return_mana(game_controller):
     assert game_controller._local_player.mana_pool == 2
     assert game_controller._local_player.mana_max == 3
     assert game_controller._local_player.mana_deck == 6
+
+
+def test_setup_connection_guest_critical_failure(game_controller, mock_network):
+    """Garante que se o Guest falhar ao conectar, o sistema encerra com sys.exit(1)."""
+    mock_network.connect_as_guest.return_value = False
+
+    with pytest.raises(SystemExit) as exc_info:
+        game_controller.setup_connection("guest", "127.0.0.1", 9999)
+
+    assert exc_info.value.code == 1
+
+
+def test_turn_loop_exit_command(game_controller):
+    """Garante que digitar 'exit' no turn_loop encerra o loop de turnos e para o jogo."""
+    game_controller._local_player.set_turn(True)
+    game_controller._view.prompt_input.return_value = "exit"
+
+    with patch("time.sleep"), patch.object(game_controller, "stop") as mock_stop:
+        game_controller._turn_loop()
+        mock_stop.assert_called_once()
+
+
+def test_turn_loop_insufficient_mana(game_controller):
+    """Garante que o jogador não pode jogar uma carta se não tiver mana suficiente."""
+    game_controller._local_player.set_turn(True)
+    game_controller._local_player.mana_pool = 1
+    card = {"name": "Super Dano", "type": "DANO", "value": 5, "cost": 3}
+    game_controller._local_player.hand = [card]
+
+    game_controller._view.prompt_input.side_effect = ["0", "pass"]
+
+    with patch("time.sleep"), patch.object(game_controller, "_execute_card_action") as mock_execute:
+        game_controller._turn_loop()
+        mock_execute.assert_not_called()
+        assert len(game_controller._local_player.hand) == 1
+
+
+def test_turn_loop_invalid_index(game_controller):
+    """Garante que digitar um índice de carta inexistente exibe erro e não quebra o loop."""
+    game_controller._local_player.set_turn(True)
+    game_controller._local_player.hand = [{"name": "A", "type": "CURA", "value": 1, "cost": 0}]
+
+    game_controller._view.prompt_input.side_effect = ["9", "pass"]
+
+    with patch("time.sleep"):
+        game_controller._turn_loop()
+        assert len(game_controller._local_player.hand) == 1
+
+
+def test_handle_incoming_attack_with_successful_defense(game_controller, mock_network):
+    """Garante que o jogador pode escolher uma carta de defesa válida para reagir ao ataque."""
+    game_controller._local_player.hp = 10
+    game_controller._local_player.mana_pool = 2
+    game_controller._local_player.defense_active = 0
+
+    defense_card = {"name": "Escudo de Madeira", "type": "DEFESA", "value": 3, "cost": 2}
+    game_controller._local_player.hand = [defense_card]
+
+    game_controller._view.prompt_input.return_value = "0"
+
+    with patch("time.sleep"):
+        game_controller._handle_incoming_attack(4, "Golpe")
+
+        assert game_controller._local_player.hp == 9
+        assert game_controller._local_player.mana_pool == 0
+        assert len(game_controller._local_player.hand) == 0
+
+        mock_network.send.assert_any_call({
+            "action": "ATTACK_RESOLVED",
+            "final_damage": 1
+        })
+
+
+def test_handle_incoming_attack_with_defense_penalty_mana(game_controller):
+    """Garante que defender usando uma carta com a penalidade 'return_mana' afeta os cristais."""
+    game_controller._local_player.mana_pool = 2
+    game_controller._local_player.mana_max = 3
+    game_controller._local_player.mana_deck = 5
+
+    cursed_defense = {"name": "Barreira Maldita", "type": "DEFESA", "value": 5, "cost": 1, "return_mana": True}
+    game_controller._local_player.hand = [cursed_defense]
+    game_controller._view.prompt_input.return_value = "0"
+
+    with patch("time.sleep"):
+        game_controller._handle_incoming_attack(2, "Golpe")
+
+        assert game_controller._local_player.mana_max == 2
+        assert game_controller._local_player.mana_deck == 6
+
+
+def test_handle_incoming_attack_resulting_in_death(game_controller, mock_network):
+    """Garante que se o dano zerar a vida do jogador local, o jogo envia a resolução e fecha."""
+    game_controller._local_player.hp = 3
+    game_controller._local_player.mana_pool = 0
+    game_controller._local_player.defense_active = 0
+
+    with patch("time.sleep"), patch.object(game_controller, "stop") as mock_stop:
+        game_controller._handle_incoming_attack(5, "Ataque Fatal")
+
+        assert game_controller._local_player.hp <= 0
+        mock_network.send.assert_any_call({
+            "action": "ATTACK_RESOLVED",
+            "final_damage": 5
+        })
+        mock_stop.assert_called_once()
+
+
+def test_on_connection_lost_triggers_stop(game_controller):
+    """Garante que o evento de perda de conexão invoca o encerramento do jogo."""
+    with patch.object(game_controller, "stop") as mock_stop:
+        game_controller.on_connection_lost()
+        mock_stop.assert_called_once()
+
+
+def test_stop_method_cleanup(game_controller, mock_network):
+    """Garante que o método stop limpa os flags, desconecta a rede e sai do sistema."""
+    game_controller._is_game_running = True
+
+    with patch("time.sleep"), pytest.raises(SystemExit) as exc_info:
+        game_controller.stop()
+
+    assert game_controller._is_game_running is False
+    mock_network.disconnect.assert_called_once()
+    assert exc_info.value.code == 0
